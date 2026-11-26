@@ -1,0 +1,2631 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>CJK Unicode Checker &amp; Cleaner</title>
+  <style>
+    /* =========================================================================
+       DESIGN TOKENS & RESET (Zero external dependencies, completely offline)
+       ========================================================================= */
+    :root {
+      --bg-page: #f8fafc;
+      --bg-card: #ffffff;
+      --bg-subtle: #f1f5f9;
+      --bg-muted: #e2e8f0;
+      --border: #e2e8f0;
+      --border-strong: #cbd5e1;
+
+      --text-primary: #0f172a;
+      --text-secondary: #475569;
+      --text-muted: #64748b;
+
+      --accent: #4f46e5;
+      --accent-hover: #4338ca;
+      --accent-soft: #eef2ff;
+      --accent-border: #c7d2fe;
+
+      --emerald: #059669;
+      --emerald-soft: #ecfdf5;
+      --emerald-border: #a7f3d0;
+
+      --rose: #e11d48;
+      --rose-soft: #fff1f2;
+      --rose-border: #fecdd3;
+      --rose-text: #be123c;
+
+      --amber: #d97706;
+      --amber-soft: #fffbeb;
+      --amber-border: #fde68a;
+      --amber-text: #b45309;
+
+      --sky: #0284c7;
+      --sky-soft: #f0f9ff;
+      --sky-border: #bae6fd;
+      --sky-text: #0369a1;
+
+      --purple: #7c3aed;
+      --purple-soft: #f5f3ff;
+      --purple-border: #ddd6fe;
+      --purple-text: #6d28d9;
+
+      --teal: #0d9488;
+      --teal-soft: #f0fdfa;
+      --teal-border: #99f6e4;
+      --teal-text: #0f766e;
+
+      --orange: #ea580c;
+      --orange-soft: #fff7ed;
+      --orange-border: #fed7aa;
+      --orange-text: #c2410c;
+
+      --radius-sm: 6px;
+      --radius-md: 10px;
+      --radius-lg: 14px;
+      --shadow-sm: 0 1px 2px rgba(15, 23, 42, 0.05);
+      --shadow-md: 0 4px 12px rgba(15, 23, 42, 0.06);
+
+      --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial,
+                   "PingFang SC", "PingFang TC", "Hiragino Sans GB", "Microsoft YaHei",
+                   "Apple SD Gothic Neo", "Malgun Gothic", "Hiragino Kaku Gothic ProN", sans-serif;
+      --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+    }
+
+    *, *::before, *::after {
+      box-sizing: border-box;
+    }
+
+    html, body {
+      margin: 0;
+      padding: 0;
+      background-color: var(--bg-page);
+      color: var(--text-primary);
+      font-family: var(--font-sans);
+      font-size: 14px;
+      line-height: 1.5;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    button, input, textarea {
+      font-family: inherit;
+    }
+
+    .hidden {
+      display: none !important;
+    }
+
+    /* =========================================================================
+       LAYOUT & HEADER
+       ========================================================================= */
+    .app-header {
+      background: var(--bg-card);
+      border-bottom: 1px solid var(--border);
+      position: sticky;
+      top: 0;
+      z-index: 30;
+      box-shadow: var(--shadow-sm);
+    }
+
+    .container {
+      max-width: 1280px;
+      margin: 0 auto;
+      padding: 0 16px;
+    }
+
+    .header-inner {
+      padding: 14px 0;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .header-top {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .brand-icon {
+      width: 40px;
+      height: 40px;
+      border-radius: var(--radius-md);
+      background: linear-gradient(135deg, #4f46e5 0%, #6366f1 100%);
+      color: #ffffff;
+      font-size: 20px;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      box-shadow: 0 2px 6px rgba(79, 70, 229, 0.28);
+    }
+
+    .brand-title {
+      margin: 0;
+      font-size: 18px;
+      font-weight: 700;
+      letter-spacing: -0.01em;
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .profile-badge {
+      font-size: 11px;
+      font-weight: 600;
+      padding: 2px 9px;
+      border-radius: 9999px;
+      background: var(--accent-soft);
+      color: var(--accent);
+      border: 1px solid var(--accent-border);
+    }
+
+    .brand-subtitle {
+      margin: 2px 0 0;
+      font-size: 12px;
+      color: var(--text-muted);
+    }
+
+    .header-actions {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 8px;
+    }
+
+    /* Segmented Language Bar */
+    .lang-bar {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      background: var(--bg-subtle);
+      padding: 4px;
+      border-radius: var(--radius-md);
+      border: 1px solid var(--border);
+    }
+
+    .lang-btn {
+      appearance: none;
+      border: 1px solid transparent;
+      background: transparent;
+      color: var(--text-secondary);
+      font-size: 13px;
+      font-weight: 600;
+      padding: 7px 14px;
+      border-radius: 7px;
+      cursor: pointer;
+      transition: all 0.15s ease;
+      flex: 1 1 auto;
+      text-align: center;
+      white-space: nowrap;
+    }
+
+    .lang-btn:hover {
+      color: var(--text-primary);
+      background: rgba(255, 255, 255, 0.65);
+    }
+
+    .lang-btn.active {
+      background: var(--bg-card);
+      color: var(--accent);
+      border-color: var(--accent-border);
+      box-shadow: var(--shadow-sm);
+    }
+
+    .lang-native {
+      font-weight: 500;
+      opacity: 0.85;
+      margin-left: 3px;
+    }
+
+    /* =========================================================================
+       BUTTONS
+       ========================================================================= */
+    .btn {
+      appearance: none;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      padding: 8px 13px;
+      font-size: 13px;
+      font-weight: 600;
+      border-radius: var(--radius-sm);
+      border: 1px solid var(--border-strong);
+      background: var(--bg-card);
+      color: var(--text-primary);
+      cursor: pointer;
+      transition: all 0.14s ease;
+      white-space: nowrap;
+    }
+
+    .btn:hover {
+      background: var(--bg-subtle);
+      border-color: #94a3b8;
+    }
+
+    .btn:active {
+      transform: translateY(1px);
+    }
+
+    .btn-primary {
+      background: var(--accent);
+      border-color: var(--accent);
+      color: #ffffff;
+    }
+
+    .btn-primary:hover {
+      background: var(--accent-hover);
+      border-color: var(--accent-hover);
+    }
+
+    .btn-sm {
+      padding: 5px 10px;
+      font-size: 12px;
+    }
+
+    /* =========================================================================
+       MAIN CONTENT & CARDS
+       ========================================================================= */
+    .main-wrap {
+      padding: 18px 0 42px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      box-shadow: var(--shadow-sm);
+      overflow: hidden;
+    }
+
+    .card-header {
+      padding: 12px 16px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      background: #fcfdff;
+    }
+
+    .card-title-group {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .dot {
+      width: 9px;
+      height: 9px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+
+    .card-title {
+      margin: 0;
+      font-size: 14px;
+      font-weight: 700;
+      color: var(--text-primary);
+    }
+
+    .card-meta {
+      font-size: 12px;
+      color: var(--text-muted);
+      font-family: var(--font-mono);
+    }
+
+    .card-body {
+      padding: 16px;
+    }
+
+    /* =========================================================================
+       STATS GRID
+       ========================================================================= */
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(5, minmax(0, 1fr));
+      gap: 12px;
+    }
+
+    @media (max-width: 1024px) {
+      .stats-grid {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+      }
+    }
+
+    @media (max-width: 640px) {
+      .stats-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+    }
+
+    .stat-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      padding: 12px 14px;
+      box-shadow: var(--shadow-sm);
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+
+    .stat-label {
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      color: var(--text-muted);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 6px;
+      flex-wrap: wrap;
+    }
+
+    .stat-value {
+      font-size: 22px;
+      font-weight: 800;
+      color: var(--text-primary);
+      font-family: var(--font-mono);
+      line-height: 1.25;
+    }
+
+    .stat-sub {
+      font-size: 11px;
+      color: var(--text-muted);
+    }
+
+    .stat-card.stat-issues {
+      border-color: var(--rose-border);
+      background: linear-gradient(180deg, #ffffff 0%, #fff1f2 100%);
+    }
+
+    .stat-card.stat-issues .stat-label,
+    .stat-card.stat-issues .stat-value {
+      color: var(--rose);
+    }
+
+    .stat-card.stat-clean {
+      border-color: var(--emerald-border);
+      background: linear-gradient(180deg, #ffffff 0%, #ecfdf5 100%);
+    }
+
+    .stat-card.stat-clean .stat-label,
+    .stat-card.stat-clean .stat-value {
+      color: var(--emerald);
+    }
+
+    .script-mix-pill {
+      display: inline-flex;
+      align-items: center;
+      padding: 1px 7px;
+      border-radius: 9999px;
+      font-size: 10px;
+      font-weight: 700;
+      text-transform: none;
+      letter-spacing: 0;
+      background: var(--accent-soft);
+      color: var(--accent);
+      border: 1px solid var(--accent-border);
+    }
+
+    .script-mix-pill.mix-both {
+      background: var(--teal-soft);
+      color: var(--teal-text);
+      border-color: var(--teal-border);
+    }
+
+    /* =========================================================================
+       UNIQUE ANOMALIES SUMMARY BAR
+       ========================================================================= */
+    .anomalies-list {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      align-items: center;
+    }
+
+    .anomaly-pill {
+      appearance: none;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 10px;
+      border-radius: 8px;
+      border: 1px solid var(--border-strong);
+      background: #ffffff;
+      color: var(--text-primary);
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.14s ease;
+    }
+
+    .anomaly-pill:hover {
+      border-color: var(--accent);
+      background: var(--accent-soft);
+      transform: translateY(-1px);
+    }
+
+    .anomaly-pill.active {
+      background: var(--accent);
+      border-color: var(--accent);
+      color: #ffffff;
+      box-shadow: 0 0 0 2px rgba(79, 70, 229, 0.22);
+    }
+
+    .anomaly-pill.active .anomaly-code,
+    .anomaly-pill.active .anomaly-arrow {
+      color: #e0e7ff;
+    }
+
+    .anomaly-pill.active .anomaly-count {
+      background: rgba(255, 255, 255, 0.24);
+      color: #ffffff;
+    }
+
+    .anomaly-code {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      color: var(--text-muted);
+    }
+
+    .anomaly-arrow {
+      color: #94a3b8;
+      font-weight: 400;
+    }
+
+    .anomaly-count {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      padding: 1px 6px;
+      border-radius: 9999px;
+      background: var(--rose-soft);
+      color: var(--rose-text);
+    }
+
+    /* =========================================================================
+       INPUT & OUTPUT SIDE-BY-SIDE
+       ========================================================================= */
+    .io-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 16px;
+    }
+
+    @media (max-width: 900px) {
+      .io-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .editor-textarea {
+      width: 100%;
+      min-height: 150px;
+      padding: 12px 14px;
+      border: 1px solid var(--border-strong);
+      border-radius: var(--radius-md);
+      font-size: 14px;
+      line-height: 1.65;
+      color: var(--text-primary);
+      background: #ffffff;
+      resize: vertical;
+      outline: none;
+      transition: border-color 0.15s ease, box-shadow 0.15s ease;
+    }
+
+    .editor-textarea:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.12);
+    }
+
+    .editor-textarea.output-area {
+      background: #f8fafc;
+    }
+
+    .change-badge {
+      display: inline-flex;
+      align-items: center;
+      padding: 3px 9px;
+      border-radius: 9999px;
+      font-size: 11px;
+      font-weight: 700;
+      font-family: var(--font-mono);
+      background: var(--bg-subtle);
+      color: var(--text-muted);
+      border: 1px solid var(--border);
+    }
+
+    .change-badge.has-changes {
+      background: var(--emerald-soft);
+      color: var(--emerald);
+      border-color: var(--emerald-border);
+    }
+
+    .output-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 10px;
+    }
+
+    /* =========================================================================
+       CLEANER CONFIGURATION & TOGGLE SWITCHES
+       ========================================================================= */
+    .norm-row {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 12px;
+    }
+
+    .norm-group {
+      display: inline-flex;
+      background: var(--bg-subtle);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      padding: 3px;
+      gap: 4px;
+    }
+
+    .radio-option {
+      position: relative;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 14px;
+      border-radius: 7px;
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text-secondary);
+      cursor: pointer;
+      user-select: none;
+      transition: all 0.14s ease;
+    }
+
+    .radio-option input {
+      position: absolute;
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    .radio-option.selected {
+      background: var(--bg-card);
+      color: var(--accent);
+      box-shadow: var(--shadow-sm);
+    }
+
+    .hint-banner {
+      background: var(--accent-soft);
+      border: 1px solid var(--accent-border);
+      border-radius: var(--radius-md);
+      padding: 10px 14px;
+      font-size: 12.5px;
+      color: #312e81;
+      margin-bottom: 14px;
+      line-height: 1.55;
+    }
+
+    .hint-banner strong {
+      color: #1e1b4b;
+    }
+
+    /* 3x2 Responsive Toggle Grid */
+    .rules-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 12px;
+    }
+
+    @media (max-width: 1024px) {
+      .rules-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+    }
+
+    @media (max-width: 640px) {
+      .rules-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .rule-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+      padding: 12px 14px;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      background: #ffffff;
+      cursor: pointer;
+      transition: border-color 0.15s ease, background-color 0.15s ease, box-shadow 0.15s ease;
+    }
+
+    .rule-item:hover {
+      border-color: var(--accent-border);
+      background: #fafbff;
+    }
+
+    .rule-item.ja-highlight {
+      border-color: var(--amber-border);
+      background: linear-gradient(180deg, #ffffff 0%, #fffbeb 100%);
+      box-shadow: 0 0 0 1px rgba(217, 119, 6, 0.15);
+    }
+
+    .rule-title {
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--text-primary);
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 6px;
+      margin-bottom: 3px;
+    }
+
+    .rule-desc {
+      font-size: 11.5px;
+      color: var(--text-muted);
+      line-height: 1.45;
+    }
+
+    .rule-badge {
+      font-size: 10px;
+      font-weight: 700;
+      padding: 1px 7px;
+      border-radius: 9999px;
+      background: var(--amber-soft);
+      color: var(--amber-text);
+      border: 1px solid var(--amber-border);
+    }
+
+    /* Indigo Toggle Switch */
+    .switch {
+      position: relative;
+      display: inline-block;
+      width: 40px;
+      height: 22px;
+      flex-shrink: 0;
+      margin-top: 2px;
+    }
+
+    .switch input {
+      opacity: 0;
+      width: 0;
+      height: 0;
+    }
+
+    .slider {
+      position: absolute;
+      inset: 0;
+      background-color: #cbd5e1;
+      border-radius: 9999px;
+      transition: background-color 0.18s ease;
+    }
+
+    .slider::before {
+      content: "";
+      position: absolute;
+      height: 16px;
+      width: 16px;
+      left: 3px;
+      bottom: 3px;
+      background-color: #ffffff;
+      border-radius: 50%;
+      box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+      transition: transform 0.18s ease;
+    }
+
+    .switch input:checked + .slider {
+      background-color: var(--accent);
+    }
+
+    .switch input:checked + .slider::before {
+      transform: translateX(18px);
+    }
+
+    .switch input:focus-visible + .slider {
+      box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.25);
+    }
+
+    /* =========================================================================
+       VISUAL INSPECTOR & CHARACTER DETAIL BAR
+       ========================================================================= */
+    .legend-bar {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-bottom: 12px;
+    }
+
+    .legend-item {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--text-secondary);
+      padding: 2px 8px;
+      border-radius: 9999px;
+      background: var(--bg-subtle);
+      border: 1px solid var(--border);
+    }
+
+    .legend-swatch {
+      width: 9px;
+      height: 9px;
+      border-radius: 3px;
+    }
+
+    .detail-bar {
+      display: grid;
+      grid-template-columns: auto repeat(7, minmax(0, 1fr));
+      gap: 10px;
+      align-items: center;
+      padding: 12px 14px;
+      background: #f8fafc;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      margin-bottom: 14px;
+    }
+
+    @media (max-width: 1024px) {
+      .detail-bar {
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+      }
+    }
+
+    @media (max-width: 600px) {
+      .detail-bar {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+    }
+
+    .detail-glyph-box {
+      min-width: 52px;
+      height: 52px;
+      padding: 0 10px;
+      border-radius: var(--radius-md);
+      background: #ffffff;
+      border: 1px solid var(--border-strong);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 24px;
+      font-weight: 700;
+      color: var(--text-primary);
+      box-shadow: var(--shadow-sm);
+    }
+
+    .detail-cell-label {
+      font-size: 10px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      color: var(--text-muted);
+    }
+
+    .detail-cell-value {
+      font-size: 12.5px;
+      font-weight: 600;
+      color: var(--text-primary);
+      font-family: var(--font-mono);
+      word-break: break-word;
+    }
+
+    .token-container {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 4px;
+      max-height: 290px;
+      overflow-y: auto;
+      padding: 10px;
+      background: #fcfdff;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+    }
+
+    .token-chip {
+      appearance: none;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-width: 28px;
+      height: 30px;
+      padding: 0 6px;
+      border-radius: 6px;
+      border: 1px solid var(--border);
+      background: #ffffff;
+      color: var(--text-primary);
+      font-size: 14px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: transform 0.1s ease, box-shadow 0.1s ease, opacity 0.12s ease;
+    }
+
+    .token-chip:hover {
+      transform: translateY(-1px);
+      border-color: var(--accent);
+    }
+
+    .token-chip.selected {
+      box-shadow: 0 0 0 2px #ffffff, 0 0 0 4px var(--accent);
+      z-index: 2;
+    }
+
+    .token-chip.dimmed {
+      opacity: 0.25;
+    }
+
+    .token-chip.match-highlight {
+      box-shadow: 0 0 0 2px #f59e0b;
+      transform: translateY(-1px);
+      z-index: 1;
+    }
+
+    /* Chip Category Colors */
+    .chip-normal {
+      background: #ffffff;
+      border-color: #e2e8f0;
+      color: #1e293b;
+    }
+
+    .chip-kangxi {
+      background: var(--rose-soft);
+      border-color: var(--rose-border);
+      color: var(--rose-text);
+      font-weight: 700;
+    }
+
+    .chip-invisible {
+      background: var(--purple-soft);
+      border-color: var(--purple-border);
+      color: var(--purple-text);
+      font-family: var(--font-mono);
+      font-size: 11px;
+      font-weight: 700;
+    }
+
+    .chip-space {
+      background: var(--sky-soft);
+      border-color: var(--sky-border);
+      color: var(--sky-text);
+      font-family: var(--font-mono);
+      font-size: 11px;
+      font-weight: 700;
+    }
+
+    .chip-fullwidth {
+      background: var(--amber-soft);
+      border-color: var(--amber-border);
+      color: var(--amber-text);
+      font-weight: 700;
+    }
+
+    .chip-halfkana {
+      background: var(--orange-soft);
+      border-color: var(--orange-border);
+      color: var(--orange-text);
+      font-weight: 700;
+    }
+
+    .chip-nfd {
+      background: var(--teal-soft);
+      border-color: var(--teal-border);
+      color: var(--teal-text);
+      font-weight: 700;
+    }
+
+    .chip-surrogate {
+      background: #eef2ff;
+      border-color: #a5b4fc;
+      color: #3730a3;
+      font-weight: 700;
+    }
+
+    .chip-corrupt {
+      background: #fef2f2;
+      border-color: #fca5a5;
+      color: #991b1b;
+      font-weight: 800;
+    }
+
+    /* =========================================================================
+       FILTERABLE CHARACTER TABLE
+       ========================================================================= */
+    .filter-tabs {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+    }
+
+    .filter-tab {
+      appearance: none;
+      border: 1px solid var(--border);
+      background: #ffffff;
+      color: var(--text-secondary);
+      font-size: 12px;
+      font-weight: 600;
+      padding: 5px 11px;
+      border-radius: 9999px;
+      cursor: pointer;
+      transition: all 0.14s ease;
+    }
+
+    .filter-tab:hover {
+      border-color: var(--accent-border);
+      color: var(--accent);
+    }
+
+    .filter-tab.active {
+      background: var(--accent);
+      border-color: var(--accent);
+      color: #ffffff;
+    }
+
+    .table-wrap {
+      width: 100%;
+      overflow-x: auto;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 12.5px;
+      text-align: left;
+    }
+
+    thead th {
+      padding: 10px 12px;
+      background: var(--bg-subtle);
+      color: var(--text-secondary);
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      border-bottom: 1px solid var(--border);
+      white-space: nowrap;
+    }
+
+    tbody td {
+      padding: 8px 12px;
+      border-bottom: 1px solid var(--border);
+      vertical-align: middle;
+    }
+
+    tbody tr {
+      cursor: pointer;
+      transition: background-color 0.1s ease;
+    }
+
+    tbody tr:hover {
+      background: #f8fafc;
+    }
+
+    tbody tr.row-selected {
+      background: var(--accent-soft);
+    }
+
+    .mono {
+      font-family: var(--font-mono);
+    }
+
+    .status-tag {
+      display: inline-flex;
+      align-items: center;
+      padding: 2px 8px;
+      border-radius: 9999px;
+      font-size: 11px;
+      font-weight: 700;
+      white-space: nowrap;
+    }
+
+    .tag-ok {
+      background: var(--bg-subtle);
+      color: var(--text-secondary);
+    }
+
+    .tag-danger {
+      background: var(--rose-soft);
+      color: var(--rose-text);
+      border: 1px solid var(--rose-border);
+    }
+
+    .tag-warn {
+      background: var(--amber-soft);
+      color: var(--amber-text);
+      border: 1px solid var(--amber-border);
+    }
+
+    .tag-info {
+      background: var(--sky-soft);
+      color: var(--sky-text);
+      border: 1px solid var(--sky-border);
+    }
+
+    .tag-purple {
+      background: var(--purple-soft);
+      color: var(--purple-text);
+      border: 1px solid var(--purple-border);
+    }
+
+    .table-footer {
+      padding: 10px 16px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 8px;
+      background: #fcfdff;
+      border-top: 1px solid var(--border);
+      font-size: 12px;
+      color: var(--text-muted);
+    }
+
+    /* Toast Notification (replaces alert/confirm) */
+    .toast {
+      position: fixed;
+      right: 18px;
+      bottom: 18px;
+      z-index: 100;
+      background: #0f172a;
+      color: #ffffff;
+      padding: 10px 16px;
+      border-radius: var(--radius-md);
+      font-size: 13px;
+      font-weight: 600;
+      box-shadow: 0 10px 25px rgba(15, 23, 42, 0.25);
+      opacity: 0;
+      transform: translateY(10px);
+      pointer-events: none;
+      transition: opacity 0.2s ease, transform 0.2s ease;
+    }
+
+    .toast.show {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  </style>
+</head>
+<body>
+  <!-- =========================================================================
+       HEADER & 4-LANGUAGE PROFILE SELECTOR
+       ========================================================================= -->
+  <header class="app-header">
+    <div class="container">
+      <div class="header-inner">
+        <div class="header-top">
+          <div class="brand">
+            <div class="brand-icon" id="brandGlyph" aria-hidden="true">汉</div>
+            <div>
+              <h1 class="brand-title">
+                CJK Unicode Checker &amp; Cleaner
+                <span class="profile-badge" id="activeProfileBadge">Chinese · 简/繁 Mixed</span>
+              </h1>
+              <p class="brand-subtitle">
+                Offline Unicode inspector &amp; normalizer for Mixed Chinese (Sim/Trad), Korean, Japanese &amp; Multilingual text
+              </p>
+            </div>
+          </div>
+
+          <div class="header-actions">
+            <button type="button" class="btn btn-primary" id="btnLoadSample">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="12" y1="18" x2="12" y2="12"/><line x1="9" y1="15" x2="15" y2="15"/></svg>
+              <span id="btnLoadSampleText">Load Dirty Sample</span>
+            </button>
+            <button type="button" class="btn" id="btnClear">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/></svg>
+              Clear
+            </button>
+          </div>
+        </div>
+
+        <!-- 4-Button Segmented Language Selector -->
+        <nav class="lang-bar" role="tablist" aria-label="Language Profile Selector">
+          <button type="button" class="lang-btn active" data-lang="zh" role="tab" aria-selected="true">
+            Chinese <span class="lang-native">(简/繁 Mixed)</span>
+          </button>
+          <button type="button" class="lang-btn" data-lang="ko" role="tab" aria-selected="false">
+            Korean <span class="lang-native">(한국어)</span>
+          </button>
+          <button type="button" class="lang-btn" data-lang="ja" role="tab" aria-selected="false">
+            Japanese <span class="lang-native">(日本語)</span>
+          </button>
+          <button type="button" class="lang-btn" data-lang="auto" role="tab" aria-selected="false">
+            Auto / Multilingual
+          </button>
+        </nav>
+      </div>
+    </div>
+  </header>
+
+  <!-- =========================================================================
+       MAIN WORKSPACE
+       ========================================================================= -->
+  <main class="container main-wrap">
+
+    <!-- 1. Real-Time Diagnostics & Stats Bar -->
+    <section class="stats-grid" aria-label="Unicode Diagnostics">
+      <div class="stat-card">
+        <div class="stat-label">Code Points</div>
+        <div class="stat-value" id="statCodePoints">0</div>
+        <div class="stat-sub" id="statUtf16Sub">0 UTF-16 · 0 surrogates</div>
+      </div>
+
+      <div class="stat-card">
+        <div class="stat-label">UTF-8 Bytes</div>
+        <div class="stat-value" id="statUtf8">0</div>
+        <div class="stat-sub">Encoded byte size</div>
+      </div>
+
+      <div class="stat-card">
+        <div class="stat-label">
+          <span id="statNativeLabel">Script Mix</span>
+          <span class="script-mix-pill hidden" id="statScriptMixBadge">Mixed</span>
+        </div>
+        <div class="stat-value" id="statNativeCount">0</div>
+        <div class="stat-sub" id="statNativeSub">0 Sim · 0 Trad</div>
+      </div>
+
+      <div class="stat-card stat-issues">
+        <div class="stat-label">Anomalies Found</div>
+        <div class="stat-value" id="statIssues">0</div>
+        <div class="stat-sub" id="statIssuesSub">0 unique types</div>
+      </div>
+
+      <div class="stat-card stat-clean">
+        <div class="stat-label">Fixes Applied</div>
+        <div class="stat-value" id="statChanges">0</div>
+        <div class="stat-sub" id="statChangesSub">0 modified · 0 removed</div>
+      </div>
+    </section>
+
+    <!-- 2. Unique Anomalies Summary Bar -->
+    <section class="card" id="anomaliesCard" aria-label="Unique Anomalies Summary">
+      <div class="card-header">
+        <div class="card-title-group">
+          <span class="dot" style="background:#e11d48;"></span>
+          <h2 class="card-title">Unique Anomalies Summary</h2>
+          <span class="card-meta" id="anomaliesSummaryMeta">0 unique types</span>
+        </div>
+        <button type="button" class="btn btn-sm hidden" id="btnClearAnomalyFilter">Clear Highlight</button>
+      </div>
+      <div class="card-body">
+        <div class="anomalies-list" id="anomaliesList"></div>
+      </div>
+    </section>
+
+    <!-- 3. Input & Cleaned Output Side-by-Side -->
+    <section class="io-grid" aria-label="Input and Cleaned Output">
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title-group">
+            <span class="dot" style="background:#4f46e5;"></span>
+            <h2 class="card-title">Input Text</h2>
+          </div>
+          <span class="card-meta" id="inputMeta">0 code points</span>
+        </div>
+        <div class="card-body">
+          <textarea
+            id="inputText"
+            class="editor-textarea"
+            spellcheck="false"
+            placeholder="Paste Chinese (Simplified/Traditional), Korean, Japanese, or Boolean search text here..."
+          ></textarea>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title-group">
+            <span class="dot" style="background:#059669;"></span>
+            <h2 class="card-title">Cleaned Output</h2>
+          </div>
+          <span class="change-badge" id="changeReportBadge">0 fixes applied</span>
+        </div>
+        <div class="card-body">
+          <textarea
+            id="outputText"
+            class="editor-textarea output-area"
+            readonly
+            spellcheck="false"
+            placeholder="Cleaned output will appear here in real time..."
+          ></textarea>
+          <div class="output-actions">
+            <button type="button" class="btn btn-primary btn-sm" id="btnCopyOutput">Copy Cleaned</button>
+            <button type="button" class="btn btn-sm" id="btnReplaceInput">Replace Input</button>
+            <button type="button" class="btn btn-sm" id="btnDownloadTxt">Download .txt</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 4. Live Cleaner Configuration -->
+    <section class="card" aria-label="Cleaner Configuration">
+      <div class="card-header">
+        <div class="card-title-group">
+          <span class="dot" style="background:#4f46e5;"></span>
+          <h2 class="card-title">Cleaner Rules &amp; Normalization</h2>
+          <span class="card-meta">5 of 6 toggles ON by default</span>
+        </div>
+        <button type="button" class="btn btn-sm" id="btnResetRules">Reset Defaults</button>
+      </div>
+      <div class="card-body">
+        <!-- Normalization Mode Segmented Control -->
+        <div class="norm-row">
+          <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+            <span style="font-size:12.5px;font-weight:700;color:var(--text-secondary);">Unicode Normalization:</span>
+            <div class="norm-group" id="normModeGroup" role="radiogroup" aria-label="Unicode Normalization Form">
+              <label class="radio-option" data-mode="NONE">
+                <input type="radio" name="normMode" value="NONE" />
+                None
+              </label>
+              <label class="radio-option selected" data-mode="NFC">
+                <input type="radio" name="normMode" value="NFC" checked />
+                NFC (Recommended)
+              </label>
+              <label class="radio-option" data-mode="NFKC">
+                <input type="radio" name="normMode" value="NFKC" />
+                NFKC
+              </label>
+            </div>
+          </div>
+        </div>
+
+        <!-- Language-Specific Normalization Hint Banner -->
+        <div class="hint-banner" id="hintBanner">
+          <strong id="hintTitle">Mixed Chinese &amp; Kangxi Radicals:</strong>
+          <span id="hintBody"></span>
+        </div>
+
+        <!-- 6 Toggle Switch Cards (3x2 Responsive Grid) -->
+        <!-- Defaults: 5 ON (checked), ONLY Half-width Katakana OFF (unchecked) -->
+        <div class="rules-grid">
+          <label class="rule-item">
+            <span class="switch">
+              <input type="checkbox" id="optFixKangxiCompat" checked />
+              <span class="slider"></span>
+            </span>
+            <div>
+              <div class="rule-title">Fix Kangxi Radicals &amp; CJK Compat</div>
+              <div class="rule-desc">Surgically converts U+2E80–2FDF, U+F900–FAFF &amp; U+2F800–2FA1F to standard CJK via NFKC without touching quotes or operators</div>
+            </div>
+          </label>
+
+          <label class="rule-item">
+            <span class="switch">
+              <input type="checkbox" id="optStripInvisible" checked />
+              <span class="slider"></span>
+            </span>
+            <div>
+              <div class="rule-title">Remove Invisible &amp; Zero-Width Chars</div>
+              <div class="rule-desc">Removes ZWSP, ZWNJ, ZWJ, BOM (U+FEFF), Soft Hyphen &amp; control chars (keeps \n, \r, \t)</div>
+            </div>
+          </label>
+
+          <label class="rule-item">
+            <span class="switch">
+              <input type="checkbox" id="optNormalizeSpaces" checked />
+              <span class="slider"></span>
+            </span>
+            <div>
+              <div class="rule-title">Normalize Unusual Spaces</div>
+              <div class="rule-desc">Converts NBSP (U+00A0) &amp; Ideographic Space (U+3000) to standard ASCII space</div>
+            </div>
+          </label>
+
+          <label class="rule-item">
+            <span class="switch">
+              <input type="checkbox" id="optFullwidthAscii" checked />
+              <span class="slider"></span>
+            </span>
+            <div>
+              <div class="rule-title">Full-width ASCII &amp; Punctuation &rarr; Half-width</div>
+              <div class="rule-desc">Converts full-width letters, digits &amp; Boolean symbols (＂, （, ）, Ａ–Ｚ, ０–９) to ASCII while preserving standard CJK punctuation (，。！？)</div>
+            </div>
+          </label>
+
+          <label class="rule-item" id="ruleHalfwidthKana">
+            <span class="switch">
+              <input type="checkbox" id="optHalfwidthKana" />
+              <span class="slider"></span>
+            </span>
+            <div>
+              <div class="rule-title">
+                Half-width Katakana &rarr; Full-width
+                <span class="rule-badge hidden" id="badgeJaRule">Suggested for JA</span>
+              </div>
+              <div class="rule-desc">Converts half-width Katakana (ｶﾀｶﾅ, U+FF65–FF9F) &amp; voiced marks to full-width (off by default)</div>
+            </div>
+          </label>
+
+          <label class="rule-item">
+            <span class="switch">
+              <input type="checkbox" id="optRemoveReplPua" checked />
+              <span class="slider"></span>
+            </span>
+            <div>
+              <div class="rule-title">Strip Replacement &amp; PUA Glyphs</div>
+              <div class="rule-desc">Removes corrupted U+FFFD (&#xFFFD;) and Private Use Area (U+E000–F8FF) glyphs</div>
+            </div>
+          </label>
+        </div>
+      </div>
+    </section>
+
+    <!-- 5. Interactive Visual Inspector & Character Detail Bar -->
+    <section class="card" aria-label="Visual Character Inspector">
+      <div class="card-header">
+        <div class="card-title-group">
+          <span class="dot" style="background:#0284c7;"></span>
+          <h2 class="card-title">Visual Character Inspector</h2>
+          <span class="card-meta" id="inspectorMeta">Click any character chip to inspect</span>
+        </div>
+      </div>
+      <div class="card-body">
+        <div class="legend-bar">
+          <span class="legend-item"><span class="legend-swatch" style="background:#fecdd3;border:1px solid #e11d48;"></span>Kangxi / Compat</span>
+          <span class="legend-item"><span class="legend-swatch" style="background:#ddd6fe;border:1px solid #7c3aed;"></span>Invisible / Control</span>
+          <span class="legend-item"><span class="legend-swatch" style="background:#bae6fd;border:1px solid #0284c7;"></span>Unusual Space</span>
+          <span class="legend-item"><span class="legend-swatch" style="background:#fde68a;border:1px solid #d97706;"></span>Full-width ASCII</span>
+          <span class="legend-item"><span class="legend-swatch" style="background:#fed7aa;border:1px solid #ea580c;"></span>Half-width Kana</span>
+          <span class="legend-item"><span class="legend-swatch" style="background:#99f6e4;border:1px solid #0d9488;"></span>NFD Jamo / Kana</span>
+          <span class="legend-item"><span class="legend-swatch" style="background:#c7d2fe;border:1px solid #4f46e5;"></span>Surrogate (Ext B+)</span>
+          <span class="legend-item"><span class="legend-swatch" style="background:#fca5a5;border:1px solid #991b1b;"></span>U+FFFD / PUA</span>
+        </div>
+
+        <!-- Live Detail Bar -->
+        <div class="detail-bar" id="detailBar">
+          <div class="detail-glyph-box" id="detGlyph">—</div>
+          <div>
+            <div class="detail-cell-label">Code Point</div>
+            <div class="detail-cell-value" id="detCodePoint">—</div>
+          </div>
+          <div>
+            <div class="detail-cell-label">UTF-8 Hex</div>
+            <div class="detail-cell-value" id="detUtf8">—</div>
+          </div>
+          <div>
+            <div class="detail-cell-label">UTF-16 Units</div>
+            <div class="detail-cell-value" id="detUtf16">—</div>
+          </div>
+          <div>
+            <div class="detail-cell-label">Unicode Block</div>
+            <div class="detail-cell-value" id="detBlock">—</div>
+          </div>
+          <div>
+            <div class="detail-cell-label">Category</div>
+            <div class="detail-cell-value" id="detCategory">—</div>
+          </div>
+          <div>
+            <div class="detail-cell-label">NFC Equiv.</div>
+            <div class="detail-cell-value" id="detNfc">—</div>
+          </div>
+          <div>
+            <div class="detail-cell-label">NFKC Equiv.</div>
+            <div class="detail-cell-value" id="detNfkc">—</div>
+          </div>
+        </div>
+
+        <!-- Token Chips -->
+        <div class="token-container" id="tokenContainer"></div>
+      </div>
+    </section>
+
+    <!-- 6. Filterable Character Table -->
+    <section class="card" aria-label="Character Table">
+      <div class="card-header">
+        <div class="card-title-group">
+          <span class="dot" style="background:#7c3aed;"></span>
+          <h2 class="card-title">Character Breakdown Table</h2>
+          <span class="card-meta" id="tableCountMeta">0 rows</span>
+        </div>
+
+        <div class="filter-tabs" id="tableFilters" role="tablist">
+          <button type="button" class="filter-tab active" data-filter="issues" role="tab">Issues Only</button>
+          <button type="button" class="filter-tab" data-filter="all" role="tab">All</button>
+          <button type="button" class="filter-tab" data-filter="native" role="tab">CJK / Native</button>
+          <button type="button" class="filter-tab" data-filter="invisible" role="tab">Invisible &amp; Spaces</button>
+        </div>
+      </div>
+
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>Glyph</th>
+              <th>Code Point</th>
+              <th>UTF-8 Hex</th>
+              <th>Unicode Block</th>
+              <th>Category / Status</th>
+              <th>NFC</th>
+              <th>NFKC</th>
+            </tr>
+          </thead>
+          <tbody id="charTableBody"></tbody>
+        </table>
+      </div>
+
+      <div class="table-footer">
+        <span id="tableFooterInfo">Showing 0 rows</span>
+        <button type="button" class="btn btn-sm hidden" id="btnShowAllRows">Show All Rows</button>
+      </div>
+    </section>
+  </main>
+
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+  <script>
+    (function () {
+      'use strict';
+
+      // =======================================================================
+      // 1. LANGUAGE PROFILES & REALISTIC DIRTY SAMPLES
+      // =======================================================================
+      const PROFILES = {
+        zh: {
+          id: 'zh',
+          name: 'Chinese (简/繁 Mixed)',
+          badge: 'Chinese · 简/繁 Mixed',
+          glyph: '汉',
+          sampleBtn: 'Load Dirty Sample',
+          nativeLabel: 'Script Mix',
+          hintTitle: 'Mixed Chinese & Kangxi Radicals:',
+          hintBody:
+            'NFC alone does not fix Kangxi Radicals (⾼, ⼼, ⻘, ⼤, ⽂, ⽣) because they use compatibility decompositions. With 5 cleaner toggles ON by default (and Half-width Katakana OFF), Kangxi Radicals, invisible chars, unusual spaces, full-width Boolean symbols, and U+FFFD/PUA glyphs are cleaned automatically while preserving Simplified/Traditional Hanzi and standard CJK punctuation (，。！？).',
+          sample:
+            '\uFF08"香港\u2FBC等教育科技学院" OR "香港\u2FBC等教育科技學院" OR "海员训练中\u2F3C" OR "海員訓練中\u2F3C" OR ' +
+            '"\u2FAD年学院" OR "\u2FAD年學院"\uFF09\u3000OR (("华威\u2F24学" OR "華威\u2F24學") AND ' +
+            '(\uFF02\uFF36\uFF34\uFF23\uFF02 OR\u00A0"职业训练局" OR "職業訓練局")) OR ' +
+            '"职专\u2F42凭" OR "職專\u2F42憑" OR "职专毕业\u2F63留港计划"\u200B OR "香港\uFFFD教育\uFA1B利中\u2F3C"（\uD842\uDFB7）',
+        },
+        ko: {
+          id: 'ko',
+          name: 'Korean (한국어)',
+          badge: 'Korean · 한국어',
+          glyph: '한',
+          sampleBtn: 'Load Dirty Sample',
+          nativeLabel: 'Hangul & Hanja',
+          hintTitle: 'Korean (한국어):',
+          hintBody:
+            'NFC automatically composes macOS NFD decomposed Hangul Jamo (ᄒ+ᅡ+ᆫ+ᄀ+ᅳ+ᆯ → 한글) back into standard Hangul syllables. Invisible ZWSP, NBSP, full-width ASCII, Compatibility Hanja (車), and U+FFFD are cleaned by default.',
+          sample:
+            '\uFEFF\u1112\u1161\u11AB\u1100\u1173\u11AF 파일 테스트\u200B입니다! ' +
+            '자모 확인:\u00A0ㄱㅏ, 한자:\uF902량 번호 \uFF2B\uFF32\uFF11\uFF12\uFF13\uFF08\uFFFD\uE001\uFF09.',
+        },
+        ja: {
+          id: 'ja',
+          name: 'Japanese (日本語)',
+          badge: 'Japanese · 日本語',
+          glyph: 'あ',
+          sampleBtn: 'Load Dirty Sample',
+          nativeLabel: 'Kana & Kanji',
+          hintTitle: 'Japanese (日本語):',
+          hintBody:
+            'NFC fixes macOS NFD decomposed Kana (か + ゙ → が, は + ゚ → ぱ) and Compatibility Kanji (神, 福), while the Kangxi toggle fixes radical lookalikes (⼀). Toggle "Half-width Katakana → Full-width" ON when you also want to convert ｶﾀｶﾅ to カタカナ.',
+          sample:
+            '\uFEFF\u2F00番の\uFA19社と\uFA1B岡へ\u3000か\u3099んは\u309Aって行こう！\u200B ' +
+            'ｶﾀｶﾅ表記とコード：\uFF2A\uFF30\uFF12\uFF10\uFF12\uFF16\uFF08\uFFFD\uFF09。',
+        },
+        auto: {
+          id: 'auto',
+          name: 'Auto / Multilingual',
+          badge: 'Auto · Multilingual',
+          glyph: '文',
+          sampleBtn: 'Load Dirty Sample',
+          nativeLabel: 'CJK / Native',
+          hintTitle: 'Auto / Multilingual Mode:',
+          hintBody:
+            'Safe across English, Malay, Indonesian, Simplified/Traditional Chinese, Korean, and Japanese. NFC + 5 default toggles repair NFD Hangul/Kana, Kangxi Radicals, ZWSP, NBSP/U+3000, full-width ASCII, and U+FFFD without altering standard Latin, Malay, or Indonesian words.',
+          sample:
+            '\uFF08"Selangor Education" OR "Pendidikan Malaysia" OR "香港\u2FBC等教育学院" OR "香港\u2FBC等教育學院" OR "中\u2F3C"\uFF09\u00A0AND ' +
+            '("\u1112\u1161\u11AB\u1100\u1173\u11AF" OR "か\u3099んは\u309Aる" OR "ｶﾀｶﾅ")\u200B\uFFFD',
+        },
+      };
+
+      // Track known sample strings so switching languages swaps sample only if unmodified
+      const ALL_SAMPLES = new Set(Object.values(PROFILES).map((p) => p.sample));
+
+      // Offline ~260-character Simplified-only vs Traditional-only Hanzi dictionary (non-overlapping)
+      const SIM_ONLY_SET = new Set(Array.from(
+        '学专设资讯艺训员发汇纵业办语课创赛凭毕华国进晋厨计处划职术务' +
+        '广东车门书长见风马鱼鸟龙龟齐齿关开会来时实对爱为无从众听应张' +
+        '当录总战报担据损换数显历权条构标样检欢气汉满灭灯点热独现电画' +
+        '疗监盘确礼离种积称稳竞笔简筹签经结给统继绩续维综绿编练组细终' +
+        '网联胜脑脸节荣药营蓝补装观规视览觉认议记讲许论访证评识诉词译' +
+        '试诗话详误说请诸读调谈谋谢贝负贡财责贤败货质购贵贸费贺赏赚赞' +
+        '转轮轻载较辆输边达迁过运还这远违连迟适选递逻遗邮邻释钟钢钱钻' +
+        '铁铜银链销锁错锦键镇镜闭问间闻阁阅队阳阴阶际陆陈险随隐难须顾' +
+        '顿预领频题颜额飞饭饮馆验骑骗鲜鸡麦龄础'
+      ));
+
+      const TRAD_ONLY_SET = new Set(Array.from(
+        '學專設資訊藝訓員發匯縱業辦語課創賽憑畢華國進晉廚計處劃職術務' +
+        '廣東車門書長見風馬魚鳥龍龜齊齒關開會來時實對愛為無從眾聽應張' +
+        '當錄總戰報擔據損換數顯歷權條構標樣檢歡氣漢滿滅燈點熱獨現電畫' +
+        '療監盤確禮離種積稱穩競筆簡籌簽經結給統繼績續維綜綠編練組細終' +
+        '網聯勝腦臉節榮藥營藍補裝觀規視覽覺認議記講許論訪證評識訴詞譯' +
+        '試詩話詳誤說請諸讀調談謀謝貝負貢財責賢敗貨質購貴貿費賀賞賺讚' +
+        '轉輪輕載較輛輸邊達遷過運還這遠違連遲適選遞邏遺郵鄰釋鐘鋼錢鑽' +
+        '鐵銅銀鏈銷鎖錯錦鍵鎮鏡閉問間聞閣閱隊陽陰階際陸陳險隨隱難須顧' +
+        '頓預領頻題顏額飛飯飲館驗騎騙鮮雞麥齡礎'
+      ));
+
+      // Standard CJK prose punctuation inside U+FF01-FF5E that should be preserved
+      // when converting Full-width ASCII & Boolean symbols to Half-width
+      const PRESERVED_CJK_FULLWIDTH_PUNCT = new Set([
+        0xFF01, // ！ Full-width Exclamation Mark
+        0xFF0C, // ， Full-width Comma
+        0xFF1F, // ？ Full-width Question Mark
+      ]);
+
+      // =======================================================================
+      // 2. UNICODE CLASSIFICATION HELPERS
+      // =======================================================================
+      const utf8Encoder = new TextEncoder();
+
+      function formatCP(cp) {
+        return 'U+' + cp.toString(16).toUpperCase().padStart(4, '0');
+      }
+
+      function toUtf8Hex(ch) {
+        const bytes = utf8Encoder.encode(ch);
+        let out = '';
+        for (let i = 0; i < bytes.length; i++) {
+          if (i > 0) out += ' ';
+          out += bytes[i].toString(16).toUpperCase().padStart(2, '0');
+        }
+        return out;
+      }
+
+      function toUtf16Hex(ch) {
+        const units = [];
+        for (let i = 0; i < ch.length; i++) {
+          units.push('0x' + ch.charCodeAt(i).toString(16).toUpperCase().padStart(4, '0'));
+        }
+        return units.join(' ');
+      }
+
+      function escapeHtml(str) {
+        return String(str)
+          .replace(/&/g, '&amp;')
+          .replace(/</g, '&lt;')
+          .replace(/>/g, '&gt;')
+          .replace(/"/g, '&quot;')
+          .replace(/'/g, '&#39;');
+      }
+
+      function isKangxiOrCompat(cp) {
+        return (
+          (cp >= 0x2E80 && cp <= 0x2EFF) || // CJK Radicals Supplement
+          (cp >= 0x2F00 && cp <= 0x2FDF) || // Kangxi Radicals
+          (cp >= 0xF900 && cp <= 0xFAFF) || // CJK Compatibility Ideographs
+          (cp >= 0x2F800 && cp <= 0x2FA1F)  // CJK Compatibility Ideographs Supplement
+        );
+      }
+
+      function isCjkBasicOrExtA(cp) {
+        return (
+          (cp >= 0x4E00 && cp <= 0x9FFF) ||
+          (cp >= 0x3400 && cp <= 0x4DBF)
+        );
+      }
+
+      function isCjkExtBPlus(cp) {
+        return (
+          (cp >= 0x20000 && cp <= 0x2A6DF) ||
+          (cp >= 0x2A700 && cp <= 0x2EBEF) ||
+          (cp >= 0x30000 && cp <= 0x323AF)
+        );
+      }
+
+      function isHangulSyllable(cp) {
+        return cp >= 0xAC00 && cp <= 0xD7AF;
+      }
+
+      function isNfdHangulJamo(cp) {
+        return (
+          (cp >= 0x1100 && cp <= 0x11FF) ||
+          (cp >= 0xA960 && cp <= 0xA97F) ||
+          (cp >= 0xD7B0 && cp <= 0xD7FF)
+        );
+      }
+
+      function isCompatJamo(cp) {
+        return cp >= 0x3130 && cp <= 0x318F;
+      }
+
+      function isHiragana(cp) {
+        return cp >= 0x3040 && cp <= 0x309F;
+      }
+
+      function isKatakana(cp) {
+        return (cp >= 0x30A0 && cp <= 0x30FF) || (cp >= 0x31F0 && cp <= 0x31FF);
+      }
+
+      function isCombiningKanaMark(cp) {
+        return cp === 0x3099 || cp === 0x309A;
+      }
+
+      function isHalfwidthKatakana(cp) {
+        return cp >= 0xFF65 && cp <= 0xFF9F;
+      }
+
+      function isFullwidthAsciiConvertible(cp) {
+        return cp >= 0xFF01 && cp <= 0xFF5E && !PRESERVED_CJK_FULLWIDTH_PUNCT.has(cp);
+      }
+
+      function isUnusualSpace(cp) {
+        return (
+          cp === 0x00A0 || // NBSP
+          cp === 0x1680 ||
+          (cp >= 0x2000 && cp <= 0x200A) || // En/Em/Thin/Hair spaces
+          cp === 0x202F || // Narrow NBSP
+          cp === 0x205F || // Medium Math Space
+          cp === 0x3000    // Ideographic Space
+        );
+      }
+
+      function isInvisibleOrControl(cp) {
+        if (cp === 0x0009 || cp === 0x000A || cp === 0x000D) return false; // Keep \t, \n, \r
+        return (
+          (cp >= 0x0000 && cp <= 0x001F) ||
+          (cp >= 0x007F && cp <= 0x009F) ||
+          cp === 0x00AD || // Soft Hyphen
+          cp === 0x061C || // Arabic Letter Mark
+          cp === 0x180E ||
+          (cp >= 0x200B && cp <= 0x200F) || // ZWSP, ZWNJ, ZWJ, LRM, RLM
+          (cp >= 0x202A && cp <= 0x202E) || // Bidi controls
+          (cp >= 0x2060 && cp <= 0x206F) || // Word Joiner, invisible operators
+          cp === 0xFEFF    // BOM / ZWNBSP
+        );
+      }
+
+      function isReplacementOrPua(cp) {
+        return (
+          cp === 0xFFFD ||
+          (cp >= 0xE000 && cp <= 0xF8FF) ||
+          (cp >= 0xF0000 && cp <= 0xFFFFD) ||
+          (cp >= 0x100000 && cp <= 0x10FFFD)
+        );
+      }
+
+      function getInvisibleLabel(cp) {
+        const map = {
+          0x0009: 'TAB',
+          0x000A: 'LF',
+          0x000D: 'CR',
+          0x0020: 'SP',
+          0x00A0: 'NBSP',
+          0x00AD: 'SHY',
+          0x200B: 'ZWSP',
+          0x200C: 'ZWNJ',
+          0x200D: 'ZWJ',
+          0x200E: 'LRM',
+          0x200F: 'RLM',
+          0x2060: 'WJ',
+          0x3000: 'IDSP',
+          0xFEFF: 'BOM',
+        };
+        if (map[cp]) return map[cp];
+        if (isUnusualSpace(cp)) return 'SP*';
+        if (isInvisibleOrControl(cp)) return 'CTRL';
+        return null;
+      }
+
+      function getUnicodeBlock(cp) {
+        if (cp <= 0x007F) return 'Basic Latin';
+        if (cp <= 0x00FF) return 'Latin-1 Supplement';
+        if (cp >= 0x1100 && cp <= 0x11FF) return 'Hangul Jamo (NFD)';
+        if (cp >= 0x2000 && cp <= 0x206F) return 'General Punctuation';
+        if (cp >= 0x2E80 && cp <= 0x2EFF) return 'CJK Radicals Supplement';
+        if (cp >= 0x2F00 && cp <= 0x2FDF) return 'Kangxi Radicals';
+        if (cp >= 0x3000 && cp <= 0x303F) return 'CJK Symbols & Punctuation';
+        if (cp >= 0x3040 && cp <= 0x309F) return 'Hiragana';
+        if (cp >= 0x30A0 && cp <= 0x30FF) return 'Katakana';
+        if (cp >= 0x3130 && cp <= 0x318F) return 'Hangul Compat Jamo';
+        if (cp >= 0x3400 && cp <= 0x4DBF) return 'CJK Unified Ext A';
+        if (cp >= 0x4E00 && cp <= 0x9FFF) return 'CJK Unified Ideographs';
+        if (cp >= 0xAC00 && cp <= 0xD7AF) return 'Hangul Syllables';
+        if (cp >= 0xE000 && cp <= 0xF8FF) return 'Private Use Area (PUA)';
+        if (cp >= 0xF900 && cp <= 0xFAFF) return 'CJK Compat Ideographs';
+        if (cp === 0xFEFF) return 'Arabic Pres. Forms-B (BOM)';
+        if (cp >= 0xFF00 && cp <= 0xFFEF) return 'Halfwidth & Fullwidth Forms';
+        if (cp === 0xFFFD) return 'Specials (Replacement)';
+        if (cp >= 0x20000 && cp <= 0x2A6DF) return 'CJK Unified Ext B';
+        if (cp >= 0x2A700 && cp <= 0x2EBEF) return 'CJK Unified Ext C–F';
+        if (cp >= 0x2F800 && cp <= 0x2FA1F) return 'CJK Compat Ideographs Supp.';
+        if (cp >= 0x30000 && cp <= 0x323AF) return 'CJK Unified Ext G–H';
+        return 'Other Unicode Block';
+      }
+
+      function isNativeForProfile(cp, lang) {
+        if (lang === 'ko') {
+          return isHangulSyllable(cp) || isCjkBasicOrExtA(cp) || isCjkExtBPlus(cp);
+        }
+        if (lang === 'ja') {
+          return isHiragana(cp) || isKatakana(cp) || isCjkBasicOrExtA(cp) || isCjkExtBPlus(cp);
+        }
+        if (lang === 'auto') {
+          return (
+            isCjkBasicOrExtA(cp) ||
+            isCjkExtBPlus(cp) ||
+            isHangulSyllable(cp) ||
+            isHiragana(cp) ||
+            isKatakana(cp)
+          );
+        }
+        return isCjkBasicOrExtA(cp) || isCjkExtBPlus(cp);
+      }
+
+      function detectChineseScriptMix(items) {
+        let simCount = 0;
+        let tradCount = 0;
+        let totalHanzi = 0;
+        for (let i = 0; i < items.length; i++) {
+          const it = items[i];
+          if (isCjkBasicOrExtA(it.cp) || isCjkExtBPlus(it.cp)) {
+            totalHanzi++;
+            if (SIM_ONLY_SET.has(it.ch)) simCount++;
+            else if (TRAD_ONLY_SET.has(it.ch)) tradCount++;
+          }
+        }
+        let label = 'No Hanzi';
+        let isMixed = false;
+        if (totalHanzi > 0) {
+          if (simCount > 0 && tradCount > 0) {
+            label = 'Mixed Sim + Trad';
+            isMixed = true;
+          } else if (simCount > 0) {
+            label = 'Simplified';
+          } else if (tradCount > 0) {
+            label = 'Traditional';
+          } else {
+            label = 'Shared Hanzi';
+          }
+        }
+        return { label, isMixed, simCount, tradCount, totalHanzi };
+      }
+
+      // =======================================================================
+      // 3. ANALYZER & CLEANER ENGINE
+      // =======================================================================
+      function analyzeText(text, lang) {
+        const chars = Array.from(text);
+        const items = [];
+
+        for (let i = 0; i < chars.length; i++) {
+          const ch = chars[i];
+          const cp = ch.codePointAt(0);
+          const cpHex = formatCP(cp);
+          const nfc = ch.normalize('NFC');
+          const nfkc = ch.normalize('NFKC');
+          const hasNfcDiff = nfc !== ch;
+          const hasNfkcDiff = nfkc !== ch;
+          const isSurrogate = ch.length > 1;
+          const invisibleTag = getInvisibleLabel(cp);
+          const displayLabel = invisibleTag !== null ? invisibleTag : ch;
+          const isNative = isNativeForProfile(cp, lang);
+
+          let chipClass = 'chip-normal';
+          let tagClass = 'tag-ok';
+          let statusLabel = 'Standard';
+          let isIssue = false;
+          let isInvisibleOrSpace = false;
+
+          if (isReplacementOrPua(cp)) {
+            chipClass = 'chip-corrupt';
+            tagClass = 'tag-danger';
+            statusLabel = cp === 0xFFFD ? 'Replacement Char (U+FFFD)' : 'Private Use Area (PUA)';
+            isIssue = true;
+          } else if (isInvisibleOrControl(cp)) {
+            chipClass = 'chip-invisible';
+            tagClass = 'tag-purple';
+            statusLabel = invisibleTag ? `Invisible (${invisibleTag})` : 'Control / Invisible';
+            isIssue = true;
+            isInvisibleOrSpace = true;
+          } else if (isUnusualSpace(cp)) {
+            chipClass = 'chip-space';
+            tagClass = 'tag-info';
+            statusLabel = cp === 0x3000 ? 'Ideographic Space (U+3000)' : cp === 0x00A0 ? 'Non-Breaking Space (NBSP)' : 'Unusual Space';
+            isIssue = true;
+            isInvisibleOrSpace = true;
+          } else if (isKangxiOrCompat(cp)) {
+            chipClass = 'chip-kangxi';
+            tagClass = 'tag-danger';
+            statusLabel = (cp >= 0xF900 && cp <= 0xFAFF) || (cp >= 0x2F800 && cp <= 0x2FA1F)
+              ? 'CJK Compat Ideograph'
+              : 'Kangxi / CJK Radical';
+            isIssue = true;
+          } else if (isNfdHangulJamo(cp)) {
+            chipClass = 'chip-nfd';
+            tagClass = 'tag-warn';
+            statusLabel = 'NFD Hangul Jamo';
+            isIssue = true;
+          } else if (isCombiningKanaMark(cp)) {
+            chipClass = 'chip-nfd';
+            tagClass = 'tag-warn';
+            statusLabel = 'Combining Kana Mark (NFD)';
+            isIssue = true;
+          } else if (isCompatJamo(cp)) {
+            chipClass = 'chip-nfd';
+            tagClass = 'tag-warn';
+            statusLabel = 'Stray Compat Jamo';
+            isIssue = lang === 'ko' || lang === 'auto';
+          } else if (isHalfwidthKatakana(cp)) {
+            chipClass = 'chip-halfkana';
+            tagClass = 'tag-warn';
+            statusLabel = 'Half-width Katakana';
+            isIssue = true;
+          } else if (isFullwidthAsciiConvertible(cp)) {
+            chipClass = 'chip-fullwidth';
+            tagClass = 'tag-warn';
+            statusLabel = 'Full-width ASCII / Symbol';
+            isIssue = true;
+          } else if (isSurrogate) {
+            chipClass = 'chip-surrogate';
+            tagClass = 'tag-info';
+            statusLabel = isCjkExtBPlus(cp) ? 'CJK Ext B+ (Surrogate)' : 'Supplementary (Surrogate)';
+            isIssue = false;
+          } else if (cp === 0x0020 || cp === 0x0009 || cp === 0x000A || cp === 0x000D) {
+            isInvisibleOrSpace = true;
+            statusLabel = 'Whitespace';
+          }
+
+          items.push({
+            index: i,
+            ch,
+            cp,
+            cpHex,
+            utf8Hex: toUtf8Hex(ch),
+            utf16Hex: toUtf16Hex(ch),
+            block: getUnicodeBlock(cp),
+            nfc,
+            nfkc,
+            hasNfcDiff,
+            hasNfkcDiff,
+            isSurrogate,
+            isEscape: invisibleTag !== null,
+            displayLabel,
+            chipClass,
+            tagClass,
+            statusLabel,
+            isIssue,
+            isNative,
+            isInvisibleOrSpace,
+          });
+        }
+
+        return items;
+      }
+
+      /**
+       * Runs the configured Unicode normalization + 6 toggle rules in a predictable pipeline.
+       */
+      function runCleaner(text, opts) {
+        let working = text;
+        let modified = 0;
+        let removed = 0;
+
+        // Step 1: Unicode Normalization (None / NFC / NFKC)
+        if (opts.normMode === 'NFC' || opts.normMode === 'NFKC') {
+          const beforeArr = Array.from(working);
+          const normalized = working.normalize(opts.normMode);
+          if (normalized !== working) {
+            const afterArr = Array.from(normalized);
+            const lenDiff = beforeArr.length - afterArr.length;
+            if (lenDiff > 0) {
+              // Composed sequences (e.g., NFD Jamo or Kana + dakuten)
+              modified += lenDiff;
+            } else {
+              // Count per-position differences
+              const minLen = Math.min(beforeArr.length, afterArr.length);
+              let posDiffs = 0;
+              for (let i = 0; i < minLen; i++) {
+                if (beforeArr[i] !== afterArr[i]) posDiffs++;
+              }
+              modified += Math.max(1, posDiffs + Math.abs(lenDiff));
+            }
+            working = normalized;
+          }
+        }
+
+        // Step 2: Character-level surgical rules
+        const chars = Array.from(working);
+        const out = [];
+
+        for (let i = 0; i < chars.length; i++) {
+          let ch = chars[i];
+          const cp = ch.codePointAt(0);
+
+          // Rule 2: Remove Invisible & Zero-Width Chars
+          if (opts.stripInvisible && isInvisibleOrControl(cp)) {
+            removed++;
+            continue;
+          }
+
+          // Rule 6: Strip Replacement & PUA Glyphs
+          if (opts.removeReplPua && isReplacementOrPua(cp)) {
+            removed++;
+            continue;
+          }
+
+          // Rule 5: Half-width Katakana -> Full-width (batch consecutive runs so voiced marks merge)
+          if (opts.halfwidthKana && isHalfwidthKatakana(cp)) {
+            let run = ch;
+            while (i + 1 < chars.length && isHalfwidthKatakana(chars[i + 1].codePointAt(0))) {
+              i++;
+              run += chars[i];
+            }
+            const converted = run.normalize('NFKC');
+            if (converted !== run) {
+              modified += Array.from(run).length;
+            }
+            out.push(converted);
+            continue;
+          }
+
+          // Rule 3: Normalize Unusual Spaces
+          if (opts.normalizeSpaces && isUnusualSpace(cp)) {
+            out.push(' ');
+            modified++;
+            continue;
+          }
+
+          // Rule 1: Fix Kangxi Radicals & CJK Compatibility Ideographs
+          if (opts.fixKangxiCompat && isKangxiOrCompat(cp)) {
+            const norm = ch.normalize('NFKC');
+            if (norm !== ch) {
+              ch = norm;
+              modified++;
+            }
+            out.push(ch);
+            continue;
+          }
+
+          // Rule 4: Full-width ASCII & Boolean Punctuation -> Half-width (preserves ，。！？)
+          if (opts.fullwidthAscii && isFullwidthAsciiConvertible(cp)) {
+            ch = String.fromCodePoint(cp - 0xFEE0);
+            modified++;
+            out.push(ch);
+            continue;
+          }
+
+          out.push(ch);
+        }
+
+        return {
+          cleaned: out.join(''),
+          modified,
+          removed,
+        };
+      }
+
+      // =======================================================================
+      // 4. DOM REFERENCES & STATE
+      // =======================================================================
+      const el = {
+        brandGlyph: document.getElementById('brandGlyph'),
+        activeProfileBadge: document.getElementById('activeProfileBadge'),
+        btnLoadSample: document.getElementById('btnLoadSample'),
+        btnLoadSampleText: document.getElementById('btnLoadSampleText'),
+        btnClear: document.getElementById('btnClear'),
+        langButtons: Array.from(document.querySelectorAll('.lang-btn')),
+
+        statCodePoints: document.getElementById('statCodePoints'),
+        statUtf16Sub: document.getElementById('statUtf16Sub'),
+        statUtf8: document.getElementById('statUtf8'),
+        statNativeLabel: document.getElementById('statNativeLabel'),
+        statScriptMixBadge: document.getElementById('statScriptMixBadge'),
+        statNativeCount: document.getElementById('statNativeCount'),
+        statNativeSub: document.getElementById('statNativeSub'),
+        statIssues: document.getElementById('statIssues'),
+        statIssuesSub: document.getElementById('statIssuesSub'),
+        statChanges: document.getElementById('statChanges'),
+        statChangesSub: document.getElementById('statChangesSub'),
+
+        anomaliesSummaryMeta: document.getElementById('anomaliesSummaryMeta'),
+        btnClearAnomalyFilter: document.getElementById('btnClearAnomalyFilter'),
+        anomaliesList: document.getElementById('anomaliesList'),
+
+        inputText: document.getElementById('inputText'),
+        inputMeta: document.getElementById('inputMeta'),
+        outputText: document.getElementById('outputText'),
+        changeReportBadge: document.getElementById('changeReportBadge'),
+        btnCopyOutput: document.getElementById('btnCopyOutput'),
+        btnReplaceInput: document.getElementById('btnReplaceInput'),
+        btnDownloadTxt: document.getElementById('btnDownloadTxt'),
+
+        normModeGroup: document.getElementById('normModeGroup'),
+        hintTitle: document.getElementById('hintTitle'),
+        hintBody: document.getElementById('hintBody'),
+        btnResetRules: document.getElementById('btnResetRules'),
+
+        optFixKangxiCompat: document.getElementById('optFixKangxiCompat'),
+        optStripInvisible: document.getElementById('optStripInvisible'),
+        optNormalizeSpaces: document.getElementById('optNormalizeSpaces'),
+        optFullwidthAscii: document.getElementById('optFullwidthAscii'),
+        optHalfwidthKana: document.getElementById('optHalfwidthKana'),
+        optRemoveReplPua: document.getElementById('optRemoveReplPua'),
+        ruleHalfwidthKana: document.getElementById('ruleHalfwidthKana'),
+        badgeJaRule: document.getElementById('badgeJaRule'),
+
+        detGlyph: document.getElementById('detGlyph'),
+        detCodePoint: document.getElementById('detCodePoint'),
+        detUtf8: document.getElementById('detUtf8'),
+        detUtf16: document.getElementById('detUtf16'),
+        detBlock: document.getElementById('detBlock'),
+        detCategory: document.getElementById('detCategory'),
+        detNfc: document.getElementById('detNfc'),
+        detNfkc: document.getElementById('detNfkc'),
+        tokenContainer: document.getElementById('tokenContainer'),
+        inspectorMeta: document.getElementById('inspectorMeta'),
+
+        tableFilters: document.getElementById('tableFilters'),
+        tableCountMeta: document.getElementById('tableCountMeta'),
+        charTableBody: document.getElementById('charTableBody'),
+        tableFooterInfo: document.getElementById('tableFooterInfo'),
+        btnShowAllRows: document.getElementById('btnShowAllRows'),
+
+        toast: document.getElementById('toast'),
+      };
+
+      const state = {
+        lang: 'zh',
+        items: [],
+        selectedIndex: -1,
+        activeAnomalyCp: null,
+        tableFilter: 'issues',
+        showAllRows: false,
+        toastTimer: null,
+      };
+
+      // =======================================================================
+      // 5. UI RENDERERS
+      // =======================================================================
+      function showToast(msg) {
+        el.toast.textContent = msg;
+        el.toast.classList.add('show');
+        if (state.toastTimer) clearTimeout(state.toastTimer);
+        state.toastTimer = setTimeout(() => {
+          el.toast.classList.remove('show');
+        }, 2300);
+      }
+
+      function getCleanerOptions() {
+        const checkedRadio = el.normModeGroup.querySelector('input[name="normMode"]:checked');
+        return {
+          normMode: checkedRadio ? checkedRadio.value : 'NFC',
+          fixKangxiCompat: el.optFixKangxiCompat.checked,
+          stripInvisible: el.optStripInvisible.checked,
+          normalizeSpaces: el.optNormalizeSpaces.checked,
+          fullwidthAscii: el.optFullwidthAscii.checked,
+          halfwidthKana: el.optHalfwidthKana.checked,
+          removeReplPua: el.optRemoveReplPua.checked,
+        };
+      }
+
+      function buildUniqueAnomalies(items) {
+        const map = new Map();
+        for (let i = 0; i < items.length; i++) {
+          const it = items[i];
+          if (!it.isIssue) continue;
+          let entry = map.get(it.cp);
+          if (!entry) {
+            let targetChar = null;
+            let targetCpHex = null;
+            if (it.hasNfkcDiff && !it.isEscape) {
+              targetChar = it.nfkc;
+              targetCpHex = formatCP(it.nfkc.codePointAt(0));
+            } else if (it.hasNfcDiff && !it.isEscape) {
+              targetChar = it.nfc;
+              targetCpHex = formatCP(it.nfc.codePointAt(0));
+            }
+            entry = {
+              cp: it.cp,
+              cpHex: it.cpHex,
+              displayLabel: it.displayLabel,
+              statusLabel: it.statusLabel,
+              targetChar,
+              targetCpHex,
+              count: 0,
+              firstIndex: it.index,
+            };
+            map.set(it.cp, entry);
+          }
+          entry.count++;
+        }
+        return Array.from(map.values()).sort((a, b) => b.count - a.count || a.firstIndex - b.firstIndex);
+      }
+
+      function renderAnomaliesBar(anomalies) {
+        el.anomaliesList.innerHTML = '';
+
+        if (anomalies.length === 0) {
+          el.anomaliesSummaryMeta.textContent = '0 unique types';
+          el.btnClearAnomalyFilter.classList.add('hidden');
+          el.anomaliesList.innerHTML =
+            '<span style="font-size:13px;color:#059669;font-weight:600;">No Unicode anomalies detected in the current input.</span>';
+          return;
+        }
+
+        const totalOccurrences = anomalies.reduce((sum, a) => sum + a.count, 0);
+        el.anomaliesSummaryMeta.textContent =
+          `${anomalies.length} unique ${anomalies.length === 1 ? 'type' : 'types'} · ${totalOccurrences} total`;
+        el.btnClearAnomalyFilter.classList.toggle('hidden', state.activeAnomalyCp === null);
+
+        const frag = document.createDocumentFragment();
+        for (let i = 0; i < anomalies.length; i++) {
+          const a = anomalies[i];
+          const btn = document.createElement('button');
+          btn.type = 'button';
+          btn.dataset.cp = String(a.cp);
+          btn.className = 'anomaly-pill' + (state.activeAnomalyCp === a.cp ? ' active' : '');
+          btn.title = `${a.statusLabel} — click to highlight all ${a.count} occurrences`;
+
+          if (a.targetChar) {
+            btn.innerHTML =
+              `<span>${escapeHtml(a.displayLabel)}</span>` +
+              `<span class="anomaly-code">(${a.cpHex})</span>` +
+              `<span class="anomaly-arrow">&rarr;</span>` +
+              `<span>${escapeHtml(a.targetChar)}</span>` +
+              `<span class="anomaly-code">(${a.targetCpHex})</span>` +
+              `<span class="anomaly-count">&times;${a.count}</span>`;
+          } else {
+            btn.innerHTML =
+              `<span>${escapeHtml(a.displayLabel)}</span>` +
+              `<span class="anomaly-code">(${a.cpHex})</span>` +
+              `<span class="anomaly-count">&times;${a.count}</span>`;
+          }
+          frag.appendChild(btn);
+        }
+        el.anomaliesList.appendChild(frag);
+      }
+
+      function renderDetailBar(idx) {
+        const it = state.items[idx];
+        if (!it) {
+          el.detGlyph.textContent = '—';
+          el.detCodePoint.textContent = '—';
+          el.detUtf8.textContent = '—';
+          el.detUtf16.textContent = '—';
+          el.detBlock.textContent = '—';
+          el.detCategory.textContent = '—';
+          el.detNfc.textContent = '—';
+          el.detNfkc.textContent = '—';
+          return;
+        }
+        el.detGlyph.textContent = it.displayLabel;
+        el.detCodePoint.textContent = it.cpHex;
+        el.detUtf8.textContent = it.utf8Hex;
+        el.detUtf16.textContent = it.utf16Hex;
+        el.detBlock.textContent = it.block;
+        el.detCategory.textContent = it.statusLabel;
+        el.detNfc.textContent = it.hasNfcDiff
+          ? `${it.nfc} (${formatCP(it.nfc.codePointAt(0))})`
+          : 'Same';
+        el.detNfkc.textContent = it.hasNfkcDiff
+          ? `${it.nfkc} (${formatCP(it.nfkc.codePointAt(0))})`
+          : 'Same';
+      }
+
+      function renderTokens() {
+        const container = el.tokenContainer;
+        container.innerHTML = '';
+
+        if (state.items.length === 0) {
+          container.innerHTML = '<span style="font-size:13px;color:#64748b;">Paste text above to inspect individual Unicode code points.</span>';
+          el.inspectorMeta.textContent = '0 characters';
+          return;
+        }
+
+        const MAX_TOKENS = 1500;
+        const limit = Math.min(state.items.length, MAX_TOKENS);
+        el.inspectorMeta.textContent =
+          state.items.length > MAX_TOKENS
+            ? `Showing first ${MAX_TOKENS.toLocaleString()} of ${state.items.length.toLocaleString()} code points`
+            : `${state.items.length.toLocaleString()} code points · click any chip`;
+
+        const frag = document.createDocumentFragment();
+        for (let i = 0; i < limit; i++) {
+          const item = state.items[i];
+          const btn = document.createElement('button');
+          btn.type = 'button';
+          btn.dataset.idx = String(i);
+          let extraCls = '';
+          if (state.activeAnomalyCp !== null) {
+            extraCls = item.cp === state.activeAnomalyCp ? ' match-highlight' : ' dimmed';
+          }
+          btn.className = 'token-chip ' + item.chipClass + extraCls + (i === state.selectedIndex ? ' selected' : '');
+          btn.title = `#${i + 1} · ${item.displayLabel} · ${item.cpHex} · ${item.statusLabel}`;
+          btn.textContent = item.displayLabel;
+          frag.appendChild(btn);
+        }
+        container.appendChild(frag);
+      }
+
+      function renderTable() {
+        const tbody = el.charTableBody;
+        tbody.innerHTML = '';
+
+        const filtered = state.items.filter((item) => {
+          if (state.activeAnomalyCp !== null) return item.cp === state.activeAnomalyCp;
+          if (state.tableFilter === 'issues') return item.isIssue;
+          if (state.tableFilter === 'native') return item.isNative;
+          if (state.tableFilter === 'invisible') return item.isInvisibleOrSpace;
+          return true;
+        });
+
+        el.tableCountMeta.textContent = `${filtered.length.toLocaleString()} ${filtered.length === 1 ? 'row' : 'rows'}`;
+
+        if (filtered.length === 0) {
+          tbody.innerHTML =
+            '<tr><td colspan="8" style="text-align:center;padding:22px;color:#64748b;">No characters match the current filter.</td></tr>';
+          el.tableFooterInfo.textContent = 'Showing 0 rows';
+          el.btnShowAllRows.classList.add('hidden');
+          return;
+        }
+
+        const MAX_ROWS = state.showAllRows ? filtered.length : 250;
+        const limit = Math.min(filtered.length, MAX_ROWS);
+        const frag = document.createDocumentFragment();
+
+        for (let i = 0; i < limit; i++) {
+          const it = filtered[i];
+          const tr = document.createElement('tr');
+          tr.dataset.idx = String(it.index);
+          if (it.index === state.selectedIndex) tr.className = 'row-selected';
+
+          const nfcText = it.hasNfcDiff ? `${escapeHtml(it.nfc)} <span class="mono" style="color:#64748b;">(${formatCP(it.nfc.codePointAt(0))})</span>` : '<span style="color:#94a3b8;">—</span>';
+          const nfkcText = it.hasNfkcDiff ? `${escapeHtml(it.nfkc)} <span class="mono" style="color:#64748b;">(${formatCP(it.nfkc.codePointAt(0))})</span>` : '<span style="color:#94a3b8;">—</span>';
+
+          tr.innerHTML =
+            `<td class="mono" style="color:#64748b;">${it.index + 1}</td>` +
+            `<td><span class="token-chip ${it.chipClass}" style="pointer-events:none;height:24px;min-width:24px;font-size:13px;">${escapeHtml(it.displayLabel)}</span></td>` +
+            `<td class="mono" style="font-weight:700;">${it.cpHex}</td>` +
+            `<td class="mono" style="color:#475569;">${it.utf8Hex}</td>` +
+            `<td>${escapeHtml(it.block)}</td>` +
+            `<td><span class="status-tag ${it.tagClass}">${escapeHtml(it.statusLabel)}</span></td>` +
+            `<td>${nfcText}</td>` +
+            `<td>${nfkcText}</td>`;
+          frag.appendChild(tr);
+        }
+
+        tbody.appendChild(frag);
+        el.tableFooterInfo.textContent = `Showing ${limit.toLocaleString()} of ${filtered.length.toLocaleString()} matching rows`;
+        el.btnShowAllRows.classList.toggle('hidden', filtered.length <= limit);
+      }
+
+      function toggleAnomalyFilter(cp) {
+        if (state.activeAnomalyCp === cp) {
+          state.activeAnomalyCp = null;
+        } else {
+          state.activeAnomalyCp = cp;
+          const firstIdx = state.items.findIndex((it) => it.cp === cp);
+          if (firstIdx !== -1) state.selectedIndex = firstIdx;
+        }
+        renderAnomaliesBar(buildUniqueAnomalies(state.items));
+        renderDetailBar(state.selectedIndex);
+        renderTokens();
+        renderTable();
+
+        if (state.activeAnomalyCp !== null && state.selectedIndex !== -1) {
+          const chip = el.tokenContainer.querySelector(`button[data-idx="${state.selectedIndex}"]`);
+          if (chip) chip.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        }
+      }
+
+      function updateAll() {
+        try {
+          const text = el.inputText.value;
+          const items = analyzeText(text, state.lang);
+          state.items = items;
+
+          const utf8Bytes = utf8Encoder.encode(text).length;
+          let surrogateCount = 0;
+          let issueCount = 0;
+          let nativeCount = 0;
+
+          for (let i = 0; i < items.length; i++) {
+            const it = items[i];
+            if (it.isSurrogate) surrogateCount++;
+            if (it.isIssue) issueCount++;
+            if (it.isNative) nativeCount++;
+          }
+
+          const anomalies = buildUniqueAnomalies(items);
+          if (state.activeAnomalyCp !== null && !anomalies.some((a) => a.cp === state.activeAnomalyCp)) {
+            state.activeAnomalyCp = null;
+          }
+
+          if (items.length === 0) {
+            state.selectedIndex = -1;
+          } else if (state.selectedIndex < 0 || state.selectedIndex >= items.length) {
+            const firstIssue = items.findIndex((it) => it.isIssue);
+            state.selectedIndex = firstIssue !== -1 ? firstIssue : 0;
+          }
+
+          // Run Cleaner
+          const cleanRes = runCleaner(text, getCleanerOptions());
+          el.outputText.value = cleanRes.cleaned;
+          const totalFixes = cleanRes.modified + cleanRes.removed;
+
+          // Update Stats Bar
+          el.statCodePoints.textContent = items.length.toLocaleString();
+          el.statUtf16Sub.textContent = `${text.length.toLocaleString()} UTF-16 · ${surrogateCount} surrogate ${surrogateCount === 1 ? 'pair' : 'pairs'}`;
+          el.statUtf8.textContent = utf8Bytes.toLocaleString();
+
+          if (state.lang === 'zh' || state.lang === 'auto') {
+            const mix = detectChineseScriptMix(items);
+            el.statScriptMixBadge.textContent = mix.label;
+            el.statScriptMixBadge.classList.remove('hidden');
+            el.statScriptMixBadge.classList.toggle('mix-both', mix.isMixed);
+            el.statNativeCount.textContent = (state.lang === 'zh' ? mix.totalHanzi : nativeCount).toLocaleString();
+            el.statNativeSub.textContent = `${mix.simCount} Sim-only · ${mix.tradCount} Trad-only`;
+          } else {
+            el.statScriptMixBadge.classList.add('hidden');
+            el.statNativeCount.textContent = nativeCount.toLocaleString();
+            el.statNativeSub.textContent = `${PROFILES[state.lang].name} script`;
+          }
+
+          el.statIssues.textContent = issueCount.toLocaleString();
+          el.statIssuesSub.textContent = `${anomalies.length} unique ${anomalies.length === 1 ? 'type' : 'types'}`;
+
+          el.statChanges.textContent = totalFixes.toLocaleString();
+          el.statChangesSub.textContent = `${cleanRes.modified} modified · ${cleanRes.removed} removed`;
+
+          el.inputMeta.textContent = `${items.length.toLocaleString()} code points · ${text.length.toLocaleString()} UTF-16 units`;
+
+          el.changeReportBadge.classList.toggle('has-changes', totalFixes > 0);
+          el.changeReportBadge.textContent =
+            totalFixes > 0
+              ? `${totalFixes} fixes applied (${cleanRes.modified} mod / ${cleanRes.removed} del)`
+              : '0 fixes applied';
+
+          renderAnomaliesBar(anomalies);
+          renderDetailBar(state.selectedIndex);
+          renderTokens();
+          renderTable();
+        } catch (err) {
+          console.error('Unicode analyzer error:', err);
+          showToast('Error analyzing input text');
+        }
+      }
+
+      function applyLanguageProfile(langId, forceLoadSample) {
+        const profile = PROFILES[langId] || PROFILES.zh;
+        state.lang = profile.id;
+
+        el.brandGlyph.textContent = profile.glyph;
+        el.activeProfileBadge.textContent = profile.badge;
+        el.btnLoadSampleText.textContent = profile.sampleBtn;
+        el.statNativeLabel.textContent = profile.nativeLabel;
+        el.hintTitle.textContent = profile.hintTitle;
+        el.hintBody.textContent = profile.hintBody;
+
+        el.langButtons.forEach((btn) => {
+          const active = btn.dataset.lang === profile.id;
+          btn.classList.toggle('active', active);
+          btn.setAttribute('aria-selected', String(active));
+        });
+
+        // Subtle visual highlight on Half-width Katakana toggle in Japanese mode (kept unchecked by default)
+        const isJa = profile.id === 'ja';
+        el.ruleHalfwidthKana.classList.toggle('ja-highlight', isJa);
+        el.badgeJaRule.classList.toggle('hidden', !isJa);
+
+        const currentText = el.inputText.value;
+        const shouldSwap = forceLoadSample || currentText.trim() === '' || ALL_SAMPLES.has(currentText);
+        if (shouldSwap) {
+          el.inputText.value = profile.sample;
+          state.selectedIndex = -1;
+          state.activeAnomalyCp = null;
+          state.showAllRows = false;
+        }
+
+        updateAll();
+      }
+
+      // =======================================================================
+      // 6. EVENT LISTENERS
+      // =======================================================================
+      el.langButtons.forEach((btn) => {
+        btn.addEventListener('click', () => {
+          applyLanguageProfile(btn.dataset.lang, false);
+        });
+      });
+
+      el.btnLoadSample.addEventListener('click', () => {
+        const profile = PROFILES[state.lang];
+        el.inputText.value = profile.sample;
+        state.selectedIndex = -1;
+        state.activeAnomalyCp = null;
+        state.showAllRows = false;
+        updateAll();
+        showToast(`Loaded ${profile.name} sample`);
+      });
+
+      el.btnClear.addEventListener('click', () => {
+        el.inputText.value = '';
+        state.selectedIndex = -1;
+        state.activeAnomalyCp = null;
+        state.showAllRows = false;
+        updateAll();
+        el.inputText.focus();
+      });
+
+      el.inputText.addEventListener('input', () => {
+        state.selectedIndex = -1;
+        state.activeAnomalyCp = null;
+        state.showAllRows = false;
+        updateAll();
+      });
+
+      el.anomaliesList.addEventListener('click', (e) => {
+        const pill = e.target.closest('button[data-cp]');
+        if (!pill) return;
+        const cp = parseInt(pill.dataset.cp, 10);
+        if (!Number.isNaN(cp)) toggleAnomalyFilter(cp);
+      });
+
+      el.btnClearAnomalyFilter.addEventListener('click', () => {
+        if (state.activeAnomalyCp === null) return;
+        state.activeAnomalyCp = null;
+        renderAnomaliesBar(buildUniqueAnomalies(state.items));
+        renderTokens();
+        renderTable();
+      });
+
+      el.tokenContainer.addEventListener('click', (e) => {
+        const chip = e.target.closest('button[data-idx]');
+        if (!chip) return;
+        const idx = parseInt(chip.dataset.idx, 10);
+        if (!Number.isNaN(idx)) {
+          state.selectedIndex = idx;
+          renderDetailBar(idx);
+          renderTokens();
+          renderTable();
+        }
+      });
+
+      el.charTableBody.addEventListener('click', (e) => {
+        const row = e.target.closest('tr[data-idx]');
+        if (!row) return;
+        const idx = parseInt(row.dataset.idx, 10);
+        if (!Number.isNaN(idx)) {
+          state.selectedIndex = idx;
+          renderDetailBar(idx);
+          renderTokens();
+          renderTable();
+          const chip = el.tokenContainer.querySelector(`button[data-idx="${idx}"]`);
+          if (chip) chip.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        }
+      });
+
+      el.tableFilters.addEventListener('click', (e) => {
+        const tab = e.target.closest('button[data-filter]');
+        if (!tab) return;
+        state.tableFilter = tab.dataset.filter;
+        state.activeAnomalyCp = null;
+        state.showAllRows = false;
+        el.tableFilters.querySelectorAll('.filter-tab').forEach((t) => {
+          t.classList.toggle('active', t === tab);
+        });
+        renderAnomaliesBar(buildUniqueAnomalies(state.items));
+        renderTokens();
+        renderTable();
+      });
+
+      el.btnShowAllRows.addEventListener('click', () => {
+        state.showAllRows = true;
+        renderTable();
+      });
+
+      // Normalization Mode radios
+      el.normModeGroup.addEventListener('change', (e) => {
+        if (e.target && e.target.name === 'normMode') {
+          const val = e.target.value;
+          el.normModeGroup.querySelectorAll('.radio-option').forEach((opt) => {
+            opt.classList.toggle('selected', opt.dataset.mode === val);
+          });
+          updateAll();
+        }
+      });
+
+      // 6 Toggle switches
+      [
+        el.optFixKangxiCompat,
+        el.optStripInvisible,
+        el.optNormalizeSpaces,
+        el.optFullwidthAscii,
+        el.optHalfwidthKana,
+        el.optRemoveReplPua,
+      ].forEach((checkbox) => {
+        checkbox.addEventListener('change', updateAll);
+      });
+
+      // Reset Rules: NFC + 5 ON, ONLY Half-width Katakana OFF
+      el.btnResetRules.addEventListener('click', () => {
+        const nfcRadio = el.normModeGroup.querySelector('input[value="NFC"]');
+        if (nfcRadio) nfcRadio.checked = true;
+        el.normModeGroup.querySelectorAll('.radio-option').forEach((opt) => {
+          opt.classList.toggle('selected', opt.dataset.mode === 'NFC');
+        });
+        el.optFixKangxiCompat.checked = true;
+        el.optStripInvisible.checked = true;
+        el.optNormalizeSpaces.checked = true;
+        el.optFullwidthAscii.checked = true;
+        el.optHalfwidthKana.checked = false;
+        el.optRemoveReplPua.checked = true;
+        updateAll();
+        showToast('Rules reset (5 ON, Half-width Katakana OFF)');
+      });
+
+      // Output Actions
+      el.btnCopyOutput.addEventListener('click', () => {
+        try {
+          el.outputText.focus();
+          el.outputText.select();
+          el.outputText.setSelectionRange(0, el.outputText.value.length);
+          const ok = document.execCommand('copy');
+          if (ok) {
+            showToast('Cleaned output copied to clipboard');
+          } else {
+            showToast('Unable to copy automatically — please press Ctrl/Cmd+C');
+          }
+        } catch (err) {
+          showToast('Unable to copy automatically — please press Ctrl/Cmd+C');
+        }
+      });
+
+      el.btnReplaceInput.addEventListener('click', () => {
+        el.inputText.value = el.outputText.value;
+        state.selectedIndex = -1;
+        state.activeAnomalyCp = null;
+        state.showAllRows = false;
+        updateAll();
+        showToast('Input replaced with cleaned text');
+      });
+
+      el.btnDownloadTxt.addEventListener('click', () => {
+        try {
+          const blob = new Blob([el.outputText.value], { type: 'text/plain;charset=utf-8' });
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = `cleaned-${state.lang}-unicode.txt`;
+          document.body.appendChild(a);
+          a.click();
+          document.body.removeChild(a);
+          URL.revokeObjectURL(url);
+          showToast('Downloaded cleaned .txt file');
+        } catch (err) {
+          showToast('Download failed in this browser');
+        }
+      });
+
+      // Initialize with Mixed Chinese profile and its Boolean query sample
+      applyLanguageProfile('zh', true);
+    })();
+  </script>
+</body>
+</html>
